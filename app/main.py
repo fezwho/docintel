@@ -12,9 +12,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import settings
-from app.core.database import db_manager  # NEW
+from app.core.database import db_manager
 from app.core.logging import setup_logging
 
+# Import routers
+from app.features.auth.router import router as auth_router
 from app.features.tenants.router import router as tenants_router
 
 setup_logging()
@@ -28,13 +30,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     logger.info(f"Environment: {settings.environment}")
     
     # Initialize database
-    db_manager.init()  # NEW
+    db_manager.init()
     
     yield
     
     # Cleanup
     logger.info("Shutting down application...")
-    await db_manager.close()  # NEW
+    await db_manager.close()
 
 
 def create_application() -> FastAPI:
@@ -49,6 +51,7 @@ def create_application() -> FastAPI:
         lifespan=lifespan,
     )
     
+    # CORS
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
@@ -57,6 +60,7 @@ def create_application() -> FastAPI:
         allow_headers=["*"],
     )
     
+    # Exception handlers
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(
         request: Request, 
@@ -70,26 +74,27 @@ def create_application() -> FastAPI:
             },
         )
     
-    app.include_router(tenants_router, prefix="/api/v1")
-    
+    # Health check
     @app.get("/health", tags=["Health"])
     async def health_check() -> dict:
-        """Health check endpoint."""
-        # TODO: Add database health check
         return {
             "status": "healthy",
             "environment": settings.environment,
             "version": settings.app_version,
         }
     
+    # Root
     @app.get("/", tags=["Root"])
     async def root() -> dict:
-        """API root."""
         return {
             "message": f"Welcome to {settings.app_name}",
             "version": settings.app_version,
-            "docs": "/docs" if settings.is_development else "Documentation disabled in production",
+            "docs": "/docs" if settings.is_development else "Documentation disabled",
         }
+    
+    # Register routers
+    app.include_router(auth_router, prefix="/api/v1")
+    app.include_router(tenants_router, prefix="/api/v1")
     
     logger.info("Application created successfully")
     return app
