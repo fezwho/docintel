@@ -14,6 +14,7 @@ from fastapi.responses import JSONResponse
 from app.config import settings
 from app.core.database import db_manager
 from app.core.logging import setup_logging
+from app.core.middleware import RequestContextMiddleware, TenantIsolationMiddleware  # NEW
 
 # Import routers
 from app.features.auth.router import router as auth_router
@@ -29,12 +30,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     logger.info(f"Starting {settings.app_name} v{settings.app_version}")
     logger.info(f"Environment: {settings.environment}")
     
-    # Initialize database
     db_manager.init()
     
     yield
     
-    # Cleanup
     logger.info("Shutting down application...")
     await db_manager.close()
 
@@ -51,7 +50,9 @@ def create_application() -> FastAPI:
         lifespan=lifespan,
     )
     
-    # CORS
+    # Middleware (order matters!)
+    app.add_middleware(RequestContextMiddleware)  # NEW: Must be first
+    app.add_middleware(TenantIsolationMiddleware)  # NEW
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
@@ -74,7 +75,6 @@ def create_application() -> FastAPI:
             },
         )
     
-    # Health check
     @app.get("/health", tags=["Health"])
     async def health_check() -> dict:
         return {
@@ -83,7 +83,6 @@ def create_application() -> FastAPI:
             "version": settings.app_version,
         }
     
-    # Root
     @app.get("/", tags=["Root"])
     async def root() -> dict:
         return {

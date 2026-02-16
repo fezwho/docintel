@@ -1,18 +1,22 @@
 """
 Database models package.
-
-Import all models here for Alembic auto-generation to work.
 """
 
 from app.core.database import Base
+from app.models.api_key import APIKey
 from app.models.base import BaseModel
 from app.models.tenant import Tenant
 from app.models.user import User
+from app.models.role import Permission, Role, role_permissions, user_roles
 
-# Export all models
 __all__ = [
     "Base",
     "BaseModel",
-    "User",
     "Tenant",
+    "User",
+    "Permission",
+    "Role",
+    "role_permissions",
+    "user_roles",
+    "APIKey"
 ]

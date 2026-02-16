@@ -9,17 +9,11 @@ from app.models.base import BaseModel
 
 
 class User(BaseModel):
-    """
-    User account model.
-    
-    Relationships:
-    - Belongs to one Tenant
-    - Has many Documents (via tenant)
-    """
+    """User account model."""
     
     __tablename__ = "users"
     
-    # Authentication fields
+    # Authentication
     email: Mapped[str] = mapped_column(
         String(255),
         unique=True,
@@ -34,14 +28,14 @@ class User(BaseModel):
         comment="Bcrypt hashed password"
     )
     
-    # Profile fields
+    # Profile
     full_name: Mapped[str | None] = mapped_column(
         String(255),
         nullable=True,
         comment="User's full name"
     )
     
-    # Status flags
+    # Status
     is_active: Mapped[bool] = mapped_column(
         Boolean,
         default=True,
@@ -76,8 +70,48 @@ class User(BaseModel):
     tenant: Mapped["Tenant"] = relationship(
         "Tenant",
         back_populates="users",
-        lazy="selectin"  # Avoid N+1 queries
+        lazy="selectin"
     )
+    
+    # NEW: Roles relationship
+    roles: Mapped[list["Role"]] = relationship(
+        "Role",
+        secondary="user_roles",
+        back_populates="users",
+        lazy="selectin"
+    )
+    
+    def has_permission(self, permission_name: str) -> bool:
+        """
+        Check if user has a specific permission.
+        
+        Args:
+            permission_name: Permission identifier (e.g., "documents:read")
+            
+        Returns:
+            True if user has the permission (via any role)
+        """
+        if self.is_superuser:
+            return True
+        
+        for role in self.roles:
+            for permission in role.permissions:
+                if permission.name == permission_name:
+                    return True
+        
+        return False
+    
+    def has_role(self, role_name: str) -> bool:
+        """
+        Check if user has a specific role.
+        
+        Args:
+            role_name: Role name (e.g., "admin")
+            
+        Returns:
+            True if user has the role
+        """
+        return any(role.name == role_name for role in self.roles)
     
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email={self.email})>"
