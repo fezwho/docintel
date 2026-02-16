@@ -19,6 +19,7 @@ from app.core.middleware import RequestContextMiddleware, TenantIsolationMiddlew
 # Import routers
 from app.features.auth.router import router as auth_router
 from app.features.tenants.router import router as tenants_router
+from app.features.documents.router import router as documents_router
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -94,6 +95,7 @@ def create_application() -> FastAPI:
     # Register routers
     app.include_router(auth_router, prefix="/api/v1")
     app.include_router(tenants_router, prefix="/api/v1")
+    app.include_router(documents_router, prefix="/api/v1")
     
     logger.info("Application created successfully")
     return app
