@@ -10,6 +10,8 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.rate_limit import rate_limit
+
 from app.features.auth.dependencies import CurrentUser, get_current_user
 from app.features.auth.schemas import (
     LoginRequest,
@@ -51,6 +53,7 @@ async def register(
 async def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: Annotated[AsyncSession, Depends(get_db)],
+    _rate_limit: dict = Depends(rate_limit("auth", by="ip")),
 ) -> TokenResponse:
     """
     OAuth2 compatible token login.

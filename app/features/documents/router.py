@@ -22,6 +22,8 @@ from app.models.task import Task
 from app.features.documents.schemas_task import TaskStatusResponse
 
 from app.core.database import get_db
+from app.core.rate_limit import rate_limit
+
 from app.features.auth.dependencies import CurrentUser, require_permission
 from app.features.documents.service import document_service
 from app.features.documents.storage import get_storage
@@ -50,6 +52,7 @@ async def upload_document(
     description: str | None = Form(None, description="Document description"),
     current_user: CurrentUser = None,
     db: Annotated[AsyncSession, Depends(get_db)] = None,
+    _rate_limit: dict = Depends(rate_limit("upload")),
 ) -> DocumentUploadResponse:
     """
     Upload a new document.

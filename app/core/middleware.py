@@ -45,6 +45,10 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         
         # Log request
         process_time = time.time() - start_time
+
+        response.headers["X-Request-ID"] = request_id
+        response.headers["X-Process-Time"] = str(round(process_time * 1000, 2))
+    
         logger.info(
             f"Request completed",
             extra={

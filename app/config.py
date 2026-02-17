@@ -64,6 +64,15 @@ class Settings(BaseSettings):
     
     # Rate Limiting
     rate_limit_per_minute: int = 60
+
+    # Cache settings
+    cache_document_ttl: int = 300        # 5 minutes
+    cache_stats_ttl: int = 60            # 1 minute (stats change often)
+    cache_user_ttl: int = 600            # 10 minutes
+    cache_tenant_ttl: int = 600          # 10 minutes
+
+    # Rate limiting
+    rate_limit_enabled: bool = True
     
     # Logging
     log_level: str = "INFO"
