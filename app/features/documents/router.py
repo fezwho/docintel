@@ -17,6 +17,10 @@ from fastapi import (
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from sqlalchemy import select as sql_select
+from app.models.task import Task
+from app.features.documents.schemas_task import TaskStatusResponse
+
 from app.core.database import get_db
 from app.features.auth.dependencies import CurrentUser, require_permission
 from app.features.documents.service import document_service
@@ -50,14 +54,11 @@ async def upload_document(
     """
     Upload a new document.
     
-    Accepts:
-    - PDF (.pdf)
-    - Word (.docx)
-    - Text (.txt)
-    - Markdown (.md)
-    
-    Maximum file size: 10MB
+    The document will be processed asynchronously in the background.
+    Use the returned task_id to check processing status.
     """
+    from app.features.documents.tasks import process_document
+    
     document = await document_service.create_document(
         db=db,
         file=file,
@@ -66,11 +67,17 @@ async def upload_document(
         current_user=current_user,
     )
     
+    # Queue processing task (this is now done in service, but we need the task_id)
+    task = process_document.delay(
+        document_id=document.id,
+        tenant_id=current_user.tenant_id
+    )
+    
     return DocumentUploadResponse(
         document=DocumentRead.model_validate(document),
-        message=f"Document '{document.title}' uploaded successfully",
+        task_id=task.id,
+        message=f"Document '{document.title}' uploaded. Processing task: {task.id}",
     )
-
 
 @router.get("/", response_model=PaginatedResponse[DocumentRead])
 async def list_documents(
@@ -232,3 +239,33 @@ async def delete_document(
     return MessageResponse(
         message="Document deleted permanently" if hard_delete else "Document moved to trash"
     )
+
+
+    @router.get("/tasks/{task_id}", response_model=TaskStatusResponse)
+    async def get_task_status(
+        task_id: str,
+        current_user: CurrentUser = None,
+        db: Annotated[AsyncSession, Depends(get_db)] = None,
+    ) -> TaskStatusResponse:
+        """
+        Get background task status.
+        
+        Use this to check the status of document processing tasks.
+        The task_id is returned when uploading a document.
+        """
+        result = await db.execute(
+            sql_select(Task).where(Task.task_id == task_id)
+        )
+        
+        task = result.scalar_one_or_none()
+        
+        if not task:
+            from app.core.exceptions import not_found
+            raise not_found("Task not found")
+        
+        # Verify tenant access
+        if task.tenant_id != current_user.tenant_id and not current_user.is_superuser:
+            from app.core.exceptions import forbidden
+            raise forbidden("Access denied to this task")
+        
+        return TaskStatusResponse.model_validate(task)

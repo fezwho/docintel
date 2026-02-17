@@ -9,6 +9,7 @@ from app.models.user import User
 from app.models.role import Permission, Role, role_permissions, user_roles
 from app.models.api_key import APIKey
 from app.models.document import Document, DocumentStatus, DocumentType  # NEW
+from app.models.task import Task, TaskStatus
 
 __all__ = [
     "Base",
@@ -23,4 +24,6 @@ __all__ = [
     "Document",
     "DocumentStatus",
     "DocumentType",
+    "Task",
+    "TaskStatus",
 ]

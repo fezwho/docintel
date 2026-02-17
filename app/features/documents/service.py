@@ -10,6 +10,7 @@ from fastapi import UploadFile
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.features.documents.tasks import process_document
 from app.core.exceptions import bad_request, not_found
 from app.models.document import Document, DocumentStatus, DocumentType
 from app.models.user import User
@@ -121,8 +122,15 @@ class DocumentService:
         
         logger.info(f"Document created: {document.id} ({file.filename})")
         
-        # TODO: Trigger background processing (Milestone 6)
+        logger.info(f"Document created: {document.id} ({file.filename})")
         
+        # Queue background processing task
+        task = process_document.delay(
+            document_id=document.id,
+            tenant_id=current_user.tenant_id
+        )
+        logger.info(f"Processing task queued: {task.id} for document {document.id}")
+                
         return document
     
     @staticmethod

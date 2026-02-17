@@ -70,7 +70,8 @@ class DocumentUploadResponse(BaseSchema):
     """Response after successful upload."""
     
     document: DocumentRead
-    message: str = "Document uploaded successfully"
+    task_id: str = Field(..., description="Background processing task ID")
+    message: str = "Document uploaded successfully. Processing in background."
 
 
 class DocumentFilter(BaseSchema):
