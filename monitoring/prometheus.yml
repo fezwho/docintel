@@ -1,0 +1,35 @@
+# Prometheus configuration
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: "docintel-dev"
+    env: "development"
+
+scrape_configs:
+  - job_name: "docintel-api"
+    static_configs:
+      - targets: ["host.docker.internal:8000"]
+        labels:
+          service: "api"
+
+    metrics_path: "/metrics"
+    scrape_interval: 10s
+
+  - job_name: "docintel-worker"
+    static_configs:
+      - targets: ["host.docker.internal:9090"]
+        labels:
+          service: "celery-worker"
+
+  - job_name: "postgres"
+    static_configs:
+      - targets: ["postgres:5432"]
+        labels:
+          service: "database"
+
+  - job_name: "redis"
+    static_configs:
+      - targets: ["redis:6379"]
+        labels:
+          service: "cache"

@@ -31,48 +31,37 @@ services:
       timeout: 3s
       retries: 5
 
-  # NEW: Celery worker service
-  celery_worker:
-    build: .
-    container_name: docintel_worker
-    command: celery -A app.core.celery_app worker --loglevel=info --concurrency=4
-    depends_on:
-      - postgres
-      - redis
-    environment:
-      DATABASE_URL: postgresql+asyncpg://docintel:dev_password_change_in_prod@postgres:5432/docintel
-      REDIS_URL: redis://redis:6379/0
-    volumes:
-      - ./app:/app/app
-      - ./uploads:/app/uploads
-    restart: unless-stopped
-
-  # NEW: Celery beat scheduler
-  celery_beat:
-    build: .
-    container_name: docintel_beat
-    command: celery -A app.core.celery_app beat --loglevel=info
-    depends_on:
-      - postgres
-      - redis
-    environment:
-      DATABASE_URL: postgresql+asyncpg://docintel:dev_password_change_in_prod@postgres:5432/docintel
-      REDIS_URL: redis://redis:6379/0
-    restart: unless-stopped
-
-  # NEW: Flower monitoring
-  flower:
-    build: .
-    container_name: docintel_flower
-    command: celery -A app.core.celery_app flower --port=5555
-    depends_on:
-      - redis
+  # Monitoring stack
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: docintel_prometheus
     ports:
-      - "5555:5555"
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: docintel_grafana
+    ports:
+      - "3000:3000"
     environment:
-      REDIS_URL: redis://redis:6379/0
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana-dashboard.json:/etc/grafana/provisioning/dashboards/dashboard.json
+    depends_on:
+      - prometheus
     restart: unless-stopped
 
 volumes:
   postgres_data:
   redis_data:
+  prometheus_data:
+  grafana_data:

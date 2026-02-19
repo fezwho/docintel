@@ -1,0 +1,39 @@
+{
+    "dashboard": {
+      "title": "DocIntel Platform Metrics",
+      "panels": [
+        {
+          "title": "Request Rate",
+          "targets": [
+            {
+              "expr": "rate(http_requests_total[5m])"
+            }
+          ]
+        },
+        {
+          "title": "Request Duration (p95)",
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))"
+            }
+          ]
+        },
+        {
+          "title": "Error Rate",
+          "targets": [
+            {
+              "expr": "rate(http_requests_total{status_code=~\"5..\"}[5m])"
+            }
+          ]
+        },
+        {
+          "title": "Active Database Connections",
+          "targets": [
+            {
+              "expr": "db_connections_active"
+            }
+          ]
+        }
+      ]
+    }
+  }

@@ -1,0 +1,51 @@
+groups:
+  - name: docintel_alerts
+    interval: 30s
+    rules:
+      # High error rate
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status_code=~"5.."}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value }} errors/sec"
+
+      # Slow requests
+      - alert: SlowRequests
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2.0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "95th percentile latency is high"
+          description: "P95 latency is {{ $value }}s"
+
+      # Database connection issues
+      - alert: DatabaseConnectionLow
+        expr: db_connections_active < 1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "No active database connections"
+
+      # Cache unavailable
+      - alert: CacheUnavailable
+        expr: up{job="redis"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis cache is down"
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: process_resident_memory_bytes > 500000000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Application memory usage is high"
+          description: "Memory usage is {{ $value }} bytes"

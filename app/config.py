@@ -77,6 +77,22 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = "INFO"
     log_format: Literal["json", "console"] = "console"
+
+     # Observability
+    log_level: str = "INFO"
+    log_format: Literal["json", "console"] = "console"
+    
+    # Metrics
+    metrics_enabled: bool = True
+    
+    # Error tracking (Sentry)
+    sentry_dsn: str | None = None
+    sentry_enabled: bool = False
+    sentry_traces_sample_rate: float = 0.1
+    
+    # Performance monitoring
+    slow_query_threshold_ms: float = 1000.0
+    slow_request_threshold_ms: float = 2000.0
     
     @field_validator("environment")
     @classmethod
